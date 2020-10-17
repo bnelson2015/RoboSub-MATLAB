@@ -12,14 +12,12 @@ for i = 1:20
     imshow(imds.Files{perm(i)});
 end
 
-% Show the number of each digit in the data set
-labelCount = countEachLabel(imds)
-
 img = readimage(imds,1);
 size(img)
 numTrainFiles = 750;
 [imdsTrain,imdsValidation] = splitEachLabel(imds,numTrainFiles,'randomize');
 
+% Create the layers for the classification NN
 layers = [
     imageInputLayer([28 28 1])
     
@@ -29,20 +27,15 @@ layers = [
     
     maxPooling2dLayer(2,'Stride',2)
     
-    convolution2dLayer(3,16,'Padding','same')
-    batchNormalizationLayer
-    reluLayer
-    
-    maxPooling2dLayer(2,'Stride',2)
-    
     convolution2dLayer(3,32,'Padding','same')
     batchNormalizationLayer
     reluLayer
     
-    fullyConnectedLayer(10)
+    fullyConnectedLayer(100)
     softmaxLayer
     classificationLayer];
 
+% Set training options for GPU training
 options = trainingOptions('sgdm', ...
     'InitialLearnRate',0.01, ...
     'MaxEpochs',4, ...
@@ -52,6 +45,7 @@ options = trainingOptions('sgdm', ...
     'Verbose',false, ...
     'Plots','training-progress');
 
+% Train network on GPU
 net = trainNetwork(imdsTrain,layers,options);
 
 YPred = classify(net,imdsValidation);
@@ -59,6 +53,7 @@ YValidation = imdsValidation.Labels;
 
 accuracy = sum(YPred == YValidation)/numel(YValidation)
 
+% Set training options for CPU training
 options = trainingOptions('sgdm', ...
     'InitialLearnRate',0.01, ...
     'MaxEpochs',4, ...
@@ -69,4 +64,5 @@ options = trainingOptions('sgdm', ...
     'Plots','training-progress',...
     'ExecutionEnvironment','cpu');
 
+% Train network on CPU
 net = trainNetwork(imdsTrain,layers,options);
